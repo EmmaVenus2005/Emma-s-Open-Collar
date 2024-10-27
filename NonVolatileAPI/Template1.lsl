@@ -10,19 +10,28 @@
 // At this day, this code is not yet open-source, and I am still the owner of my work. Please let me know if you may be interested in using it,
 // it is of course entirely free as long as it remains for the Open Collar. This includes this file and oc_nonvolatile script.
 //
-// The script can be found in the package next to the front door or my house : http://maps.secondlife.com/secondlife/Lifeboat/164/60/23
-//
 // I will soon provide a new template with a function that allows to automatically send the response to the dialog
 // like Dialog() does for dialog boxes. My ultimate wish would be a synchrone way to work, like GetNVParam('testparam'),
 // but seems not easy with LSL limitations.
-
+//
+// Oct 27 2024 : EmmaVenus2005
+// Adding 'getlists','getlist' and 'setlist' request types :
+//
+// getlists (plurial) : input : appid|reqid|list_class : Returns all lists from given class (separated by |).
+// Example : "oc_dressup|getlists|Outfit" -> My first outfit|My second outfit
+//
+// getlist (singular) : input : appid|reqid|list_class|list_name : Returns the content of the list (a string with | separated)
+// Example : "oc_dressup|getlist|Outfit|Halloween outfit" -> Undies/Black thong|Skirts/Halloween skirt| ...
+// 
+// setlist : input : appid|reqid|list_class|list_name|list_content : Returns nothing 
+// Example : "oc_dressup|getlist|Outfit|Halloween outfit|Undies/Black thong|Skirts/Halloween skirt| ... (may have many items)
 
 // UUID of the person who touched the object
 string g_touchUUID;  
 
 // Constants (iNums used for message linked)
-integer NV_REQUEST = 800;
-integer NV_RESPONSE = 801;
+integer NV_REQUEST = 10800;
+integer NV_RESPONSE = 10801;
 
 default
 {
