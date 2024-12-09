@@ -5,20 +5,20 @@ function NVGetValue($valueName) {
     global $conn, $appid, $uuid, $name, $session;
     
     if (!isset($conn, $appid, $uuid, $name, $session)) {
-        error_log("SetValue: Required variables are not set.");
+        error_log("NVGetValue: Required variables are not set.");
         return false;
     }
     
     $stmt = $conn->prepare("SELECT `Value` FROM Parameter WHERE AppID = ? AND UserID = ? AND `Key` = ? LIMIT 1");
     if (!$stmt) {
-        error_log("GetValue: Statement preparation failed: " . $conn->error);
+        error_log("NVGetValue: Statement preparation failed: " . $conn->error);
         return null;
     }
     
     $stmt->bind_param("sss", $appid, $uuid, $valueName);
     
     if (!$stmt->execute()) {
-        error_log("GetValue: Execution failed: " . $stmt->error);
+        error_log("NVGetValue: Execution failed: " . $stmt->error);
         $stmt->close();
         return null;
     }
@@ -40,7 +40,7 @@ function NVSetValue($valueName, $value) {
     global $conn, $appid, $uuid, $name, $session;
     
     if (!isset($conn, $appid, $uuid, $name, $session)) {
-        error_log("SetValue: Required variables are not set.");
+        error_log("NVSetValue: Required variables are not set.");
         return false;
     }
     
@@ -48,14 +48,14 @@ function NVSetValue($valueName, $value) {
                             VALUES (?, ?, ?, 'DefaultSession', ?, ?)
                             ON DUPLICATE KEY UPDATE `Value` = VALUES(`Value`)");
     if (!$stmt) {
-        error_log("SetValue: Statement preparation failed: " . $conn->error);
+        error_log("NVSetValue: Statement preparation failed: " . $conn->error);
         return false;
     }
     
     $stmt->bind_param("sssss", $appid, $uuid, $name, $valueName, $value);
     
     if (!$stmt->execute()) {
-        error_log("SetValue: Execution failed: " . $stmt->error);
+        error_log("NVSetValue: Execution failed: " . $stmt->error);
         $stmt->close();
         return false;
     }
@@ -65,25 +65,25 @@ function NVSetValue($valueName, $value) {
 }
 
 // Function to retrieve elements from a list in the List table based on $appid, $uuid, $listClass and $listName
-function NVGetList($listClass, $listName, $delimiter) {
+function NVGetList($listClass, $listName) {
     global $conn, $appid, $uuid, $name, $session;
     
     if (!isset($conn, $appid, $uuid, $name, $session)) {
-        error_log("SetValue: Required variables are not set.");
+        error_log("NVGetList: Required variables are not set.");
         return false;
     }
 	
 	$stmt = $conn->prepare("SELECT Elements FROM List WHERE AppID = ? AND UserID = ? AND Class = ? AND Name = ?");
 	
 	if (!$stmt) {
-        error_log("GetList: Statement preparation failed: " . $conn->error);
+        error_log("NVGetList: Statement preparation failed: " . $conn->error);
         return false;
     	}
     	
 	$stmt->bind_param("ssss", $appid, $uuid, $listClass, $listName);
 
 	if (!$stmt->execute()) {
-		error_log("GetList: Execution failed: " . $stmt->error);
+		error_log("NVGetList: Execution failed: " . $stmt->error);
 		$stmt->close();
         	return false;    
     	}
@@ -93,7 +93,7 @@ function NVGetList($listClass, $listName, $delimiter) {
 	$stmt->close();
 	    
 	if ($result) {
-		return explode($delimiter, $value);
+		return $value; //explode($delimiter, $value);
 	} else {
 		// Value not found
 		return null;
@@ -141,6 +141,31 @@ function NVGetLists($listClass) {
 		// Value not found
 		return null;
 	}
+
+}
+
+// Function that allows to update a list
+function NVSetList($listClass, $listName, $listElements) {
+    global $conn, $appid, $uuid, $name, $session;
+    
+    if (!isset($conn, $appid, $uuid, $name, $session)) {
+        error_log("NVSetList: Required variables are not set.");
+        return false;
+    }
+
+    $stmt = $conn->prepare("INSERT INTO List (Timestamp, AppID, UserID, UserName, SessionID, Class, Name, Elements) 
+                        VALUES (NOW(), ?, ?, ?, 'DefaultSession', ?, ?, ?)
+                        ON DUPLICATE KEY UPDATE Elements = VALUES(Elements)");
+    $stmt->bind_param("ssssss", $appid, $uuid, $name, $listClass, $listName, $listElements);
+
+    if (!$stmt->execute()) {
+        error_log("NVSetList: Execution failed: " . $stmt->error);
+        $stmt->close();
+        return false;
+    }
+    
+    $stmt->close();
+    return true;
 
 }
 
