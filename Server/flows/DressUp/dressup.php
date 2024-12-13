@@ -6,22 +6,20 @@ if (!isset($appid, $uuid, $name, $conn, $session)) {
     exit();
 }
 
-// Constants that will identify the current flow step
-//const 'EXIT' = -1;
-//const 'MAIN' = 0;
-//const 'INDIVIDUAL' = 1;
-
 // Constants for authenticating the user that navigates in the collar ($session)
 define('AUTH_OWNER', 500);
 
-// Navigation variables
-$flowStep = 0;
+// Custom variables
+$g_basePath = "~wearings/";
 
-while ($flowStep != -1)
+// Navigation variables
+$flowStep = "MAIN";
+
+while ($flowStep != "EXIT")
 {
 
 	// Initial step
-	if ($flowStep == 0)
+	if ($flowStep == "MAIN")
 	{
 
 		$dialog = "\nDressUp App [0.90]\n\n";
@@ -37,8 +35,8 @@ while ($flowStep != -1)
 		$answer = SLDialog($dialog, $options, $session);
 		
 		switch ($answer) {
-		    case "Indiv.": 	$flowStep = 1; break;
-		    case "Outfits":	$flowStep = 2; break;
+		    case "Indiv.": 	$flowStep = "MAIN/INDIV"; break;
+		    case "Outfits":	$flowStep = "MAIN/OUTFITS"; break;
 		    
 		    // This happens when BACK is hit ; you're supposed to implement what happens
 		    // Usually set the flow step on previous step
@@ -46,35 +44,195 @@ while ($flowStep != -1)
 		    
 			    // Back to OpenCollar Apps
 			    SLMessageLinked(-1, AUTH_OWNER, "menu Apps", $session);
-			    $flowStep = -1; break;
+			    $flowStep = "EXIT"; break;
 		    
 		    // This happens when the request times out or an error occurs
 		    // Should be there in every flow step to ensure the session is closed
-		    default:
+		    // default:
 		    
-			// Exits the flow
-			$flowStep = -1;
-			break;
+			// // Exits the flow
+			// $flowStep = "EXIT";
+			// break;
 		
 		}
 				
 	// Individual clothing
-	} elseif ($flowStep == 1)
+	} elseif ($flowStep == "MAIN/INDIV")
 	{
 	
-		$dialogText = "This is a test dialog\n\nChoose your option:\n0 - First choice\n1 - Second choice\n2 - Third choice";
-
-		$result = SLDialog(
-		    $dialogText,
-		    ["Option 1", "Option 2", "Option 3", "Option 4", "Option 5", "Option 6", "Option 7", "Option 8", "Option 9", "Option 10", "Option 11", "Option 12", "Option 13"],
-		    $session
-		);
+		// Creating an instance of the clothings class
+		$clothings = new Clothings();
 		
-		// Exits the flow
-		$flowStep = -1;
+		// Header of the dialog
+		$dialog = "\nDressUp App / Individual clothings\n\n";
+
+		// Reading all categories
+		$categories = $clothings->ListCategories();
+
+		// List of choices
+		$options = [];
+
+		// Looping through categories
+		foreach($categories as $i => $category)
+		{
+
+			$dialog .= (string)($i + 1) . " - " . $category . "\n";
+			$options[] = (string)($i + 1);
+
+		}
+
+		// Sending the dialog to the avatar
+		$answer = SLDialog($dialog, $options, $session);
+		
+		// If not BACK, timeout or HTTP error...
+		if ($answer != "BACK" && $answer != NULL)
+		{
+
+			// Setting the $category for the next flow step
+			$category = $categories[((int)$answer) - 1];
+			
+			// Jumping to category browsing
+			$flowStep = "MAIN/INDIV/BROWSE";
+
+		}
+
+	// Individual clothing (browsing in a category)
+	} elseif ($flowStep == "MAIN/INDIV/BROWSE")
+	{
+
+		// Gets all items from the category to browse
+		$items = $clothings->GetItems($category);
+
+		// If a "multiple" flagged category
+		$multiple = $clothings->HasFlag($category, "multiple");
+
+		// Header of the dialog
+		$dialog = "\nDressUp App / Individual clothings / " . $category . "\n\n";
+
+		if ($multiple)
+		{ 
+
+			$dialog .= "Select or unselect any item, multiple possible for that category :\n\n";
+
+		} else 
+		{
+
+			$dialog .= "Select the item you want to wear, it will switch automatically :\n\n";
+
+		}
+
+		// List of choices
+		$options = [];
+
+		// If the category is not flagged as mandatory or multiple, adds the option "NONE"
+		if (!$clothings->HasFlag($category, "mandatory") && !$multiple)
+		{
+
+			// Adding the "NONE" option
+			$options[] = "NONE";				
+
+		}
+
+		// The choice list counter
+		$i = 1;
+
+		// Looping through items
+		foreach ($items as $key => $value)
+		{
+
+			// If the item is worn, the leading "square" or "ring" is full, otherwise empty
+			if ($value === 2 || $value === 3 || $value === 9)
+			{ 
+
+				$multiple === true ? $status = "■" : $status = "●";
+
+			} else { $multiple === true ? $status = "□" : $status = "○"; }
+			
+			$dialog .= (string)$i . " - " . $status . " " . $key . "\n";
+			$options[] = (string)$i;
+
+			// Increasing the $i
+			$i++;
+
+		}
+
+		// Sending the dialog to the avatar
+		$answer = SLDialog($dialog, $options, $session);
+		
+		// If not BACK, timeout or HTTP error...
+		if ($answer !== "BACK" && $answer !== null)
+		{
+
+			// Creating the list for RLV commands
+			$rlv = [];
+
+			// If "NONE" is selected, taking off all items from $category
+			if ($answer === 'NONE')
+			{
+
+				// Looping through items
+				foreach ($items as $key => $value)
+				{
+
+					// Preparing the RLV commands
+					$rlv[] = "detach:" . $g_basePath . $clothings->GetCategoryFolder($category) . "/" . $key . "=force";
+
+				}
+
+			// Removing all items from category and related, and wearing the selected
+			} else 	
+			{
+
+				// Changing the key/value array into indexed array
+				$keys = array_keys($items);
+
+				// Gets the name of the item
+				$itemToWear = $keys[(int)$answer - 1];
+
+				// Recovers the related categories
+				$related = $clothings->GetRelated($category);
+
+				// Looping through the related categories
+				foreach ($related as $currentCat)
+				{
+
+					// Gets the list of item in the current category
+					$items = $clothings->GetItems($currentCat);
+
+					// Looping through the items
+					foreach ($items as $currentItem => $currentStatus)
+					{			
+
+						// If the item is the one we selected, doesn't add it to the items to detach
+						if (!($category === $currentCat && $itemToWear === $currentItem))
+						{
+
+							// Preparing the RLV commands
+							$rlv[] = "detach:" . $g_basePath . $clothings->GetCategoryFolder($currentCat) . "/" . $currentItem . "=force";
+
+						}
+
+					}
+
+				}
+
+				// Attaching the requested item
+				$rlv[] = "attachover:" . $g_basePath . $clothings->GetCategoryFolder($category) . "/" . $itemToWear . "=force";
+
+			}
+
+			// test
+			//SLOwnerSay("RLV : " . implode("|", $rlv));
+
+			// Sending RLV commands
+
+			// Back to individual clothing root
+			$flowStep = "MAIN/INDIV";
+
+		}
 	
 	// Outfits
-	} elseif ($flowStep == 2)
+	} elseif ($flowStep == "MAIN/OUTFITS")
 	{
 	
 		// Header of the dialog
@@ -101,9 +259,13 @@ while ($flowStep != -1)
 		$answer = SLDialog($dialog, $options, $session);
 				
 		// Exits the flow
-		$flowStep = -1;
+		$flowStep = "EXIT";
 	
 	}
+
+	// Managing the 'BACK' option and when a dialug returns null (timeout or HTTP error)
+	if ($answer === null) {	$flowStep = "EXIT";	}
+	elseif ($answer === "BACK")	{ $flowStep = AFStepBack($flowStep); }
 
 }
 
