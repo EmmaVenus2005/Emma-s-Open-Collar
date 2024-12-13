@@ -75,8 +75,10 @@ class Clothings
 
     }
 
+    // Public Methods
+
     // Returns the folder of a given category
-    private function GetCategoryFolder(string $cat): string 
+    public function GetCategoryFolder(string $cat): string 
     {
         
         // Searching for the index of the given category
@@ -86,8 +88,6 @@ class Clothings
         return $index === -1 ? "" : $this->catFolder[$index];
 
     }
-
-    // Public Methods
 
     // Returns the list of the categories
     public function ListCategories(): array 
@@ -103,6 +103,48 @@ class Clothings
 
         // If flag exists, returns true, else false
         return array_search($flag, $this->GetCategoryFlags($cat)) !== false;
+
+    }
+
+    // Returns the list of categories that have a specific flag (TO TEST)
+    public function CategoriesWithFlag(string $flag): array 
+    {
+        
+        // Initializing an empty array for categories that have the specified flag
+        $categoriesWithFlag = [];
+
+        // Looping through all categories to check their flags
+        foreach ($this->ListCategories() as $category) {
+            
+            // If the category contains the given flag, add it to the result array
+            if ($this->HasFlag($category, $flag)) {
+                $categoriesWithFlag[] = $category;
+            }
+
+        }
+
+        // Return the array with categories that have the given flag
+        return $categoriesWithFlag;
+
+    }
+
+    // Returns true if at least one item in the category is worn (TO TEST)
+    public function CategoryWorn(string $cat): bool
+    {
+
+        // Get all items for the given category
+        $items = $this->GetItems($cat);
+
+        // Loop through each item and check its worn status
+        foreach ($items as $item => $status) {
+            
+            // If the status is 2, 3, or 9 (indicating the item is worn), return true
+            if (in_array($status, [2, 3, 9])) { return true; }
+
+        }
+
+        // If no item is worn, return false
+        return false;
 
     }
 
@@ -143,49 +185,6 @@ class Clothings
 
         // Remove duplicates in return result
         return array_unique($relatedCategories);
-
-    }
-
-    // Gets the worn status directly from the database
-    public function GetItemStatus(string $cat, string $item): int 
-    {
-
-        // Gets the folder, which is the actual list name in the databade
-        $folder = $this->GetCategoryFolder($cat);
-
-        // Reading the current dataset
-        $dataset = NVGetValue("DirFetchCurrentDataset");
-
-        // Reads the items
-        $items = NVGetList("ClothingPieces" . (integer)$dataset, $folder);
-        
-        // Split the input into pairs by ','
-        $pairs = explode(',', $items);
-
-        // Iterate over each pair to find the target string
-        foreach ($pairs as $pair) {
-            
-            // Separates Name|Status
-            $parts = explode('|', $pair);
-
-            // Validate that the pair has two parts (excludes first status)
-            if (count($parts) < 2) { continue; }
-
-            // If the left part matches to the given item, extract and return the second digit
-            if (trim($parts[0]) === $item) {
-                
-                // $numericValue becomes the status
-                $numericValue = trim($parts[1]);
-
-                // Return the first digit if it exists, otherwise return -1
-                return isset($numericValue[0]) ? (int)$numericValue[0] : -1;
-
-            }
-
-        }
-
-        // Return -1 if no match is found
-        return -1;
 
     }
 
@@ -236,6 +235,49 @@ class Clothings
         // Return the associative array with item => value pairs
         return $result;
         
+    }
+
+    // Gets the worn status directly from the database
+    public function GetItemStatus(string $cat, string $item): int 
+    {
+
+        // Gets the folder, which is the actual list name in the databade
+        $folder = $this->GetCategoryFolder($cat);
+
+        // Reading the current dataset
+        $dataset = NVGetValue("DirFetchCurrentDataset");
+
+        // Reads the items
+        $items = NVGetList("ClothingPieces" . (integer)$dataset, $folder);
+        
+        // Split the input into pairs by ','
+        $pairs = explode(',', $items);
+
+        // Iterate over each pair to find the target string
+        foreach ($pairs as $pair) {
+            
+            // Separates Name|Status
+            $parts = explode('|', $pair);
+
+            // Validate that the pair has two parts (excludes first status)
+            if (count($parts) < 2) { continue; }
+
+            // If the left part matches to the given item, extract and return the second digit
+            if (trim($parts[0]) === $item) {
+                
+                // $numericValue becomes the status
+                $numericValue = trim($parts[1]);
+
+                // Return the first digit if it exists, otherwise return -1
+                return isset($numericValue[0]) ? (int)$numericValue[0] : -1;
+
+            }
+
+        }
+
+        // Return -1 if no match is found
+        return -1;
+
     }
     
     // Sets the worn status for a particular item
