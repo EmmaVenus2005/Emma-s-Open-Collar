@@ -177,6 +177,9 @@ while ($flowStep != "EXIT")
 					// Preparing the RLV commands
 					$rlv[] = "detach:" . $g_basePath . $clothings->GetCategoryFolder($category) . "/" . $key . "=force";
 
+					// Updating the status in the current dataset from DB
+					$clothings->SetItemStatus($category, $key, 0);
+
 				}
 
 			// Removing all items from category and related, and wearing the selected
@@ -210,6 +213,9 @@ while ($flowStep != "EXIT")
 							// Preparing the RLV commands
 							$rlv[] = "detach:" . $g_basePath . $clothings->GetCategoryFolder($currentCat) . "/" . $currentItem . "=force";
 
+							// Updating the status in the current dataset from DB
+							$clothings->SetItemStatus($currentCat, $currentItem, 0);
+
 						}
 
 					}
@@ -219,12 +225,16 @@ while ($flowStep != "EXIT")
 				// Attaching the requested item
 				$rlv[] = "attachover:" . $g_basePath . $clothings->GetCategoryFolder($category) . "/" . $itemToWear . "=force";
 
+				// Updating the status in the current dataset from DB
+				$clothings->SetItemStatus($category, $itemToWear, 9);
+
 			}
 
 			// test
 			//SLOwnerSay("RLV : " . implode("|", $rlv));
 
 			// Sending RLV commands
+			SLRLVCommand($rlv);
 
 			// Back to individual clothing root
 			$flowStep = "MAIN/INDIV";
