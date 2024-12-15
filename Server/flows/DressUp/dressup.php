@@ -37,6 +37,7 @@ while ($flowStep != "EXIT")
 		switch ($answer) {
 		    case "Indiv.": 	$flowStep = "MAIN/INDIV"; break;
 		    case "Outfits":	$flowStep = "MAIN/OUTFITS"; break;
+			case "Strip": $flowStep = "MAIN/STRIP"; break;
 		    
 		    // This happens when BACK is hit ; you're supposed to implement what happens
 		    // Usually set the flow step on previous step
@@ -182,6 +183,38 @@ while ($flowStep != "EXIT")
 
 				}
 
+			// If "multiple" flagged category, item is worn/unworn depending of current status
+			} elseif ($multiple)
+			{
+
+				// Changing the key/value array into indexed array
+				$keys = array_keys($items);
+
+				// Gets the name of the item
+				$selectedItem = $keys[(int)$answer - 1];
+
+				// If the selected item is worn
+				if (in_array($items[$selectedItem], [2, 3, 9]))
+				{
+
+					// Detaching the requested item
+					$rlv[] = "detach:" . $g_basePath . $clothings->GetCategoryFolder($category) . "/" . $selectedItem . "=force";
+
+					// Updating the status in the current dataset from DB
+					$clothings->SetItemStatus($category, $selectedItem, 0);
+
+				// If the selected item is NOT worn
+				} else
+				{
+
+					// Attaching the requested item
+					$rlv[] = "attachover:" . $g_basePath . $clothings->GetCategoryFolder($category) . "/" . $selectedItem . "=force";
+
+					// Updating the status in the current dataset from DB
+					$clothings->SetItemStatus($category, $selectedItem, 9);
+
+				}			
+			
 			// Removing all items from category and related, and wearing the selected
 			} else 	
 			{
@@ -230,9 +263,6 @@ while ($flowStep != "EXIT")
 
 			}
 
-			// test
-			//SLOwnerSay("RLV : " . implode("|", $rlv));
-
 			// Sending RLV commands
 			SLRLVCommand($rlv);
 
@@ -267,10 +297,152 @@ while ($flowStep != "EXIT")
 		
 		// Sending the dialog to the avatar
 		$answer = SLDialog($dialog, $options, $session);
+		
+		// If not BACK, timeout or HTTP error...
+		if ($answer != "BACK" && $answer != null)
+		{
+
+			// Creating an instance of the clothings class
+			$clothings = new Clothings();
+
+			// Gets the name of the item
+			$outfitToWear = $lists[(int)$answer - 1];
+
+			// Gets the list of items in the selected outfit 
+			// Tops/Santa helper pink top|Skirts/Santa helper pink skirt|Shoes/Santa helper pink heels|Undies (hideplug-hide/Santa helper pink thong
+			$itemsToWear = NVGetList("Outfit", $outfitToWear);
+			
+			// Creating the list for RLV commands
+			$rlv = [];
+			
+			// Array used to list items to lock (avoid removing them when removing all other items)
+			$itemsToLock = [];
+
+			// Looping through items to wear
+			foreach (explode("|", $itemsToWear) as $currentItem)
+			{
 				
-		// Exits the flow
-		$flowStep = "EXIT";
+				// Takes the "clean" category name (without the flags, that may change after outfit save)
+				$itemCleanCat = preg_replace('/\s*\(.*\)$/', '', explode("/", $currentItem)[0]);
+
+				// Keeps only the actual item name (after /)
+				$itemName = explode("/", $currentItem)[1];
+
+				// Adding to the RLV commands list (Gets the current folder name / item name (second part after /))
+				$rlv[] = "attachover:" . $g_basePath . $clothings->GetCategoryFolder($itemCleanCat) . "/" . $itemName . "=force";
+
+				// Updating the status in the current dataset from DB
+				$clothings->SetItemStatus($itemCleanCat, $itemName, 9);		
+
+				// Updating the list of the objects to not remove in the next step
+				$itemsToLock[] = (object)[
+					'Category' => $itemCleanCat,
+					'Item' => $itemName
+				];
+
+			}
+			
+			// Looping through all categories
+			foreach ($clothings->ListCategories() as $currentCat)
+			{
+
+				// If the category has flags "keepon" or "mandatory", they are not part of the outfit (like hair or anal plug)
+				if ($clothings->HasFlag($currentCat, "keepon") || $clothings->HasFlag($currentCat, "mandatory")) { continue; }
+
+				// Looping through all items from that category
+				foreach ($clothings->GetItems($currentCat) as $currentItem => $status)
+				{
+
+					// Checks if the object is part of this outfit
+					$isPartOfOutfit = array_filter($itemsToLock, function ($item) use ($currentCat, $currentItem) {
+						return $item->Category === $currentCat && $item->Item === $currentItem;
+					});
+
+					// Checks if object if not worn (can skip unwearing)
+					$isWorn = in_array($status, [2, 3, 9]);
+
+					// If it is not part of the current outfit.
+					if (!$isPartOfOutfit)
+					{
+
+						// Preparing the RLV commands, only if the item is worn
+						$isWorn ? $rlv[] = "detach:" . $g_basePath . $clothings->GetCategoryFolder($currentCat) . "/" . $currentItem . "=force" : null;
+						
+						// Updating the status in the current dataset from DB
+						$clothings->SetItemStatus($currentCat, $currentItem, 0);		
+
+					}
+					
+				}
+
+			}
+			
+			// Sending RLV commands
+			SLRLVCommand($rlv);
+
+			// Back to the main menu
+			$flowStep = "MAIN";
+
+		}
 	
+	// Strip
+	} elseif ($flowStep == "MAIN/STRIP")
+	{
+
+		// Header of the dialog
+		$dialog = "\nDressUp App / Strip completely\n\n";
+		$dialog .= "Are you sure you want to strip her completely ?\n\n";
+
+		// Implement in flow.lsl the ability to request current SIM maturity level :
+		// https://wiki.secondlife.com/wiki/LlRequestSimulatorData
+		// If pg, should add a warning (suggested by ParkerHart)
+		
+		$options = ["Strip !"];
+
+		// Sending the dialog to the avatar
+		$answer = SLDialog($dialog, $options, $session);
+		
+		// If not BACK, timeout or HTTP error...
+		if ($answer != "BACK" && $answer != null)
+		{
+
+			// Creating an instance of the clothings class
+			$clothings = new Clothings();
+
+			// Looping through all categories
+			foreach ($clothings->ListCategories() as $currentCat)
+			{
+
+				// If the category has flags "keepon" or "mandatory", they are not part of the outfit (like hair or anal plug)
+				if ($clothings->HasFlag($currentCat, "keepon") || $clothings->HasFlag($currentCat, "mandatory")) { continue; }
+
+				// Looping through all items from that category
+				foreach ($clothings->GetItems($currentCat) as $currentItem => $status)
+				{
+
+					// Checks if object if not worn (can skip unwearing)
+					$isWorn = in_array($status, [2, 3, 9]);
+
+					// Preparing the RLV commands, only if the item is worn
+					$isWorn ? $rlv[] = "detach:" . $g_basePath . $clothings->GetCategoryFolder($currentCat) . "/" . $currentItem . "=force" : null;
+					
+					// Updating the status in the current dataset from DB
+					$clothings->SetItemStatus($currentCat, $currentItem, 0);	
+					
+					//SLOwnerSay($status);
+
+				}
+
+			}
+
+			// Sending RLV commands
+			SLRLVCommand($rlv);
+
+			// Back to the main menu
+			$flowStep = "MAIN";
+
+		}
+
 	}
 
 	// Managing the 'BACK' option and when a dialug returns null (timeout or HTTP error)
