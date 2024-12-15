@@ -38,6 +38,8 @@ while ($flowStep != "EXIT")
 		    case "Indiv.": 	$flowStep = "MAIN/INDIV"; break;
 		    case "Outfits":	$flowStep = "MAIN/OUTFITS"; break;
 			case "Strip": $flowStep = "MAIN/STRIP"; break;
+			case "Save": $flowStep = "MAIN/SAVE"; break;
+			case "HUD": $flowStep = "MAIN/HUD"; break;
 		    
 		    // This happens when BACK is hit ; you're supposed to implement what happens
 		    // Usually set the flow step on previous step
@@ -266,6 +268,8 @@ while ($flowStep != "EXIT")
 			// Sending RLV commands
 			SLRLVCommand($rlv);
 
+			DUAutoHide($clothings);
+
 			// Back to individual clothing root
 			$flowStep = "MAIN/INDIV";
 
@@ -442,6 +446,33 @@ while ($flowStep != "EXIT")
 			$flowStep = "MAIN";
 
 		}
+
+	// Save
+	} elseif ($flowStep == "MAIN/SAVE")
+	{
+
+		// Header of the dialog
+		$dialog = "\nDressUp App / Save outfit\n\n";
+		$dialog .= "Please enter the name of the outfit";
+
+		// Opening the textbox		
+		$answer = SLTextBox($dialog, $session);
+		
+		// TO IMPLEMENT
+
+	// Give HUD
+	} elseif ($flowStep == "MAIN/HUD")
+	{
+
+		// Avoids anyone else than me can get the HUD 
+		// (still a beta version, don't want to share it as it is)
+		if (!$uuid == $session) { exit(); }
+
+		// Opens the dialog that gives the object to the user
+		SLGiveInventory($session, "DressUp QuickAccess HUD");
+
+		// Exits the flow (user will have to manage his new HUD)
+		$flowStep = "EXIT";
 
 	}
 
