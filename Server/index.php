@@ -63,6 +63,19 @@ if ($uuid === null || $reqcheck === null) {
 // Retrieve the owner name
 $name = $headers['X-Secondlife-Owner-Name'] ?? null;
 
+// The message sent contains :
+// appid|requesttype| ... other items that depend on the request type
+// Splitting it into a table
+$msgParts = explode('|', $request);
+
+// Getting the app ID
+$appid = $msgParts[0] ?? null;
+if ($appid === null) { ErrBadReq(); }
+
+// Getting the request type
+$reqtype = $msgParts[1] ?? null;
+if ($reqtype === null || !preg_match('/^[a-zA-Z0-9_]+$/', $reqtype)) { ErrBadReq(); }
+
 // Checking the request validity
 // This is NOT shared, but you can implement your own function to check the validity
 // Use globals, dynamic parameters, secrets, all you want ^^
@@ -82,19 +95,6 @@ $conn = new mysqli($servername, $username, $password, $dbname);
 if ($conn->connect_error) {
     ErrDbConn($conn->connect_error);
 }
-
-// The message sent contains :
-// appid|requesttype| ... other items that depend on the request type
-// Splitting it into a table
-$msgParts = explode('|', $request);
-
-// Getting the app ID
-$appid = $msgParts[0] ?? null;
-if ($appid === null) { ErrBadReq(); }
-
-// Getting the request type
-$reqtype = $msgParts[1] ?? null;
-if ($reqtype === null || !preg_match('/^[a-zA-Z0-9_]+$/', $reqtype)) { ErrBadReq(); }
 
 // Define the path to the request file based on the request type
 $requestFile = __DIR__ . "/requests/{$reqtype}.php";
