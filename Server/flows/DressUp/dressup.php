@@ -41,21 +41,13 @@ while ($flowStep != "EXIT")
 			case "Save": $flowStep = "MAIN/SAVE"; break;
 			case "HUD": $flowStep = "MAIN/HUD"; break;
 		    
-		    // This happens when BACK is hit ; you're supposed to implement what happens
-		    // Usually set the flow step on previous step
+		    // This happens when BACK is hit
+		    // Is only managed in the steps at root level (goes back to OpenCollar Apps)
 		    case "BACK" : 
 		    
 			    // Back to OpenCollar Apps
 			    SLMessageLinked(-1, AUTH_OWNER, "menu Apps", $session);
 			    $flowStep = "EXIT"; break;
-		    
-		    // This happens when the request times out or an error occurs
-		    // Should be there in every flow step to ensure the session is closed
-		    // default:
-		    
-			// // Exits the flow
-			// $flowStep = "EXIT";
-			// break;
 		
 		}
 				
@@ -268,6 +260,7 @@ while ($flowStep != "EXIT")
 			// Sending RLV commands
 			SLRLVCommand($rlv);
 
+			// Hides plug or genitals if needed
 			DUAutoHide($clothings);
 
 			// Back to individual clothing root
@@ -384,6 +377,9 @@ while ($flowStep != "EXIT")
 			// Sending RLV commands
 			SLRLVCommand($rlv);
 
+			// Hides plug or genitals if needed
+			DUAutoHide($clothings);
+
 			// Back to the main menu
 			$flowStep = "MAIN";
 
@@ -442,6 +438,9 @@ while ($flowStep != "EXIT")
 			// Sending RLV commands
 			SLRLVCommand($rlv);
 
+			// Hides plug or genitals if needed
+			DUAutoHide($clothings);
+
 			// Back to the main menu
 			$flowStep = "MAIN";
 
@@ -458,7 +457,53 @@ while ($flowStep != "EXIT")
 		// Opening the textbox		
 		$answer = SLTextBox($dialog, $session);
 		
-		// TO IMPLEMENT
+		// If not BACK, timeout or HTTP error...
+		if ($answer != "BACK" && $answer != null)
+		{
+		
+			// Creating an instance of the clothings class
+			$clothings = new Clothings();
+
+			// String that will store the clothing parts separated by |
+			$outfitToSave = "";
+		
+			// Loopeing throug all categories
+			foreach ($clothings->ListCategories() as $currentCat)
+			{
+
+				// If the category has flags "keepon" or "mandatory", they are not part of the outfit (like hair or anal plug)
+				if ($clothings->HasFlag($currentCat, "keepon") || $clothings->HasFlag($currentCat, "mandatory")) { continue; }
+
+				// Looping through all items from that category
+				foreach ($clothings->GetItems($currentCat) as $currentItem => $status)
+				{
+
+					// Checks if object if not worn (can skip unwearing)
+					$isWorn = in_array($status, [2, 3, 9]);
+
+					// If the current item is worn, adds it to the list
+					$isWorn ? $outfitToSave .= "|" . $currentCat . "/" . $currentItem : null;
+
+				}
+
+			}
+
+			// If the outfit is not empty (when naked and saving)
+			if ($outfitToSave !== "")
+			{
+
+				// Removes the first |
+				$outfitToSave = substr($outfitToSave, 1);
+
+				// Saving the outfit
+				NVSetList("Outfit", $answer, $outfitToSave);
+
+			}
+
+			// Will go to the outfits list to see new add
+			$flowStep = "MAIN/OUTFITS";
+
+		}
 
 	// Give HUD
 	} elseif ($flowStep == "MAIN/HUD")
