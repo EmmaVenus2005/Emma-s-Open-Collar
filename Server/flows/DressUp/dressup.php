@@ -22,15 +22,36 @@ while ($flowStep != "EXIT")
 	if ($flowStep == "MAIN")
 	{
 
+		// Checking if the session is from wearer
+		$isWearer = $uuid === $session;
+
+		// Adding dialog for everyone
 		$dialog = "\nDressUp App [0.90]\n\n";
 		$dialog .= "[Indiv.] : Manage individual clothing parts\n\n";
-		$dialog .= "[Outfits] : Wear a complete oufit that you previously saved\n\n";
-		$dialog .= "[Save] : Save the current outfit\n\n";
+		$dialog .= "[Outfits] : Wear a complete oufit\n\n";
 		$dialog .= "[Strip] : Strip completely\n\n";
-		$dialog .= "[HUD] : Gives you the HUD for DressUp quick access\n\n";
 		
-		$options = ["Indiv.", "Outfits", "Save", "Strip", "HUD"];
+		// Adding options for everyone
+		$options = ["Indiv.", "Outfits", "Strip"];
 		
+		// Only added if the dialog session is the wearer
+		if ($isWearer)
+		{
+
+			// Adding Save choice
+			$dialog .= "[Save] : Save the current outfit\n\n";
+			$options[] = "Save";
+
+			// Adding the Delete choice 
+			$dialog .= "[Delete] : Delete an outfit (clothing items will NOT be deleted)\n\n";
+			$options[] = "Delete";
+
+			// Adding HUD choice
+			$dialog .= "[HUD] : Gives you the HUD for DressUp quick access\n\n";
+			$options[] = "HUD";
+
+		}
+
 		// Sending the dialog to the avatar
 		$answer = SLDialog($dialog, $options, $session);
 		
@@ -39,6 +60,7 @@ while ($flowStep != "EXIT")
 		    case "Outfits":	$flowStep = "MAIN/OUTFITS"; break;
 			case "Strip": $flowStep = "MAIN/STRIP"; break;
 			case "Save": $flowStep = "MAIN/SAVE"; break;
+			case "Delete": $flowStep = "MAIN/DELETE"; break;
 			case "HUD": $flowStep = "MAIN/HUD"; break;
 		    
 		    // This happens when BACK is hit
@@ -219,6 +241,9 @@ while ($flowStep != "EXIT")
 				// Gets the name of the item
 				$itemToWear = $keys[(int)$answer - 1];
 
+				// Attaching the requested item
+				$rlv[] = "attachover:" . $g_basePath . $clothings->GetCategoryFolder($category) . "/" . $itemToWear . "=force";
+
 				// Recovers the related categories
 				$related = $clothings->GetRelated($category);
 
@@ -248,10 +273,7 @@ while ($flowStep != "EXIT")
 					}
 
 				}
-
-				// Attaching the requested item
-				$rlv[] = "attachover:" . $g_basePath . $clothings->GetCategoryFolder($category) . "/" . $itemToWear . "=force";
-
+				
 				// Updating the status in the current dataset from DB
 				$clothings->SetItemStatus($category, $itemToWear, 9);
 
@@ -519,6 +541,72 @@ while ($flowStep != "EXIT")
 		// Exits the flow (user will have to manage his new HUD)
 		$flowStep = "EXIT";
 
+	// Delete
+	} elseif ($flowStep == "MAIN/DELETE")
+	{
+
+		// Header of the dialog
+		$dialog = "\nDressUp App / Delete outfit\n\n";
+		$dialog .= "Choose the outfit to DELETE :\n\n";
+		
+		// Gets the list of outfits
+		$lists = NVGetLists("Outfit");
+		
+		// List of choices
+		$options = [];
+		
+		// Looping through those elements
+		foreach($lists as $i => $list)
+		{
+			
+			// Adding the outfit list in the dialog and options
+			$dialog .= (string)($i + 1) . " - " . $list . "\n";
+			$options[] = (string)($i + 1);
+		
+		}
+		
+		// Sending the dialog to the avatar
+		$answer = SLDialog($dialog, $options, $session);
+		
+		// If not BACK, timeout or HTTP error...
+		if ($answer != "BACK" && $answer != null)
+		{
+
+			// Gets the name of the item
+			$outfitToDelete = $lists[(int)$answer - 1];
+
+			// Goes to outfit list
+			$flowStep = "MAIN/DELETE/CONFIRM";
+
+		}
+
+	// Confirm deletion
+	} elseif ($flowStep == "MAIN/DELETE/CONFIRM")
+	{
+
+		// Header of the dialog
+		$dialog = "\nDressUp App / Delete outfit / Confirm\n\n";
+		$dialog .= "Are you sure you want to delete following outfit ?\n\n";
+		$dialog .= $outfitToDelete . "\n\n";
+		$dialog .= "Clothing items from the outfit won't be affected and are still available.\n";
+		
+		$options = ["Delete !"];
+
+		// Sending the dialog to the avatar
+		$answer = SLDialog($dialog, $options, $session);
+		
+		// If not BACK, timeout or HTTP error...
+		if ($answer != "BACK" && $answer != null)
+		{
+
+			// ACTUAL DELETION
+			NVDelList("Outfit", $outfitToDelete);
+
+			// Back to outfit list
+			$flowStep = "MAIN/OUTFITS";
+
+		}
+
 	}
 
 	// Managing the 'BACK' option and when a dialug returns null (timeout or HTTP error)
@@ -530,4 +618,3 @@ while ($flowStep != "EXIT")
 exit();
 
 ?>
-
