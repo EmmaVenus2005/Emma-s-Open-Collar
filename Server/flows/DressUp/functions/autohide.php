@@ -7,9 +7,14 @@ function DUAutoHide(Clothings $clothings)
     // Global session variables
     global $conn, $appid, $uuid, $name, $session;
 
-    // Initializing variables to false
+    // Initializing variables
     $hideGenitals = false;
     $hidePlug = false;
+    $hideNipples = false;
+    $leaveFeet = false;
+
+    // Initializing the array for RLV commands
+    $rlv = [];
 
     // Looping through all categories to check their flags
     foreach ($clothings->ListCategories() as $category) 
@@ -28,6 +33,22 @@ function DUAutoHide(Clothings $clothings)
         {
 
             $hideGenitals = true;
+
+        }
+
+        // If the category has flag "hidenipples" and at least one item is worn
+        if ($clothings->HasFlag($category, "hidenipples") && $clothings->CategoryWorn($category))
+        {
+
+            $hideNipples = true;
+
+        }
+
+        // If the category has flag "resetfeet" and at least one item is worn
+        if ($clothings->HasFlag($category, "resetfeet") && $clothings->CategoryWorn($category))
+        {
+
+            $leaveFeet = true;
 
         }
 
@@ -76,6 +97,40 @@ function DUAutoHide(Clothings $clothings)
         // Add any other commands here for different manufacturers
 
     }
+
+    // Nipples to be hidden (HAS TO HAVE OBJECT IN #RLV FOLDER)
+    if ($hideNipples)
+    {
+
+        // Attaching the invisible box that hides nipples
+        $rlv[] = "attachover:~outfits/~utils/~larax/hidenipples=force";
+
+    // Nipples to be visible
+    } else
+    {
+
+        // Detaching the invisible box that hides nipples
+        $rlv[] = "detach:~outfits/~utils/~larax/hidenipples=force";
+
+    }
+
+    // Feet to be reset to flat (HAS TO HAVE OBJECT IN #RLV FOLDER)
+    if (!$leaveFeet)
+    {
+
+        // Attaching the invisible box that resets feet to flat
+        $rlv[] = "attachover:~outfits/~utils/~larax/feet:flat=force";
+
+    } else
+    {
+
+        // Detaching the invisible box that resets feet to flat
+        $rlv[] = "detach:~outfits/~utils/~larax/feet:flat=force";
+
+    }
+
+    // Sending RLV commands (if any)
+	if ($rlv) { SLRLVCommand($rlv); }
 
 }
 
