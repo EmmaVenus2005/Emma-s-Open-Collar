@@ -208,44 +208,47 @@ state active
 
     }
 
-    // Listen for the response from the RLV system with the list of folders
+    // Listen for the dialog response
     listen(integer channel, string name, key id, string message)
     {
 
         // Iterate through g_lDialogs to find the matching entry
         integer i;
-        for (i = 0; i < llGetListLength(g_lDialogs); i += 5)
+        for (i = 0; i < llGetListLength(g_lDialogs); i += 4)
         {
             
-            integer dialogChannel = llList2Integer(g_lDialogs, i + 2);
-            key userKey = (key)llList2String(g_lDialogs, i);
+            // Getting the channel and user
+            integer l_iChannel = llList2Integer(g_lDialogs, i + 2);
+            key l_kUser = (key)llList2String(g_lDialogs, i);
             
             // Check if the channel and user match
-            if (dialogChannel == channel && userKey == id)
+            if (l_iChannel == channel && l_kUser == id)
             {
                 
                 // Retrieve the stored HTTP request ID
-                key httpRequestID = llList2Key(g_lDialogs, i + 1);
+                key l_kRequestID = llList2Key(g_lDialogs, i + 1);
 
                 // Send the HTTP response with the dialog response
-                llHTTPResponse(httpRequestID, 200, message);
+                llHTTPResponse(l_kRequestID, 200, message);
 
                 // Clean up: remove listener and dialog entry
-                integer handle = llList2Integer(g_lDialogs, i + 3);
-                llListenRemove(handle);
-                g_lDialogs = llDeleteSubList(g_lDialogs, i, i + 4);
+                integer l_iHandle = llList2Integer(g_lDialogs, i + 3);
+                llListenRemove(l_iHandle);
+                g_lDialogs = llDeleteSubList(g_lDialogs, i, i + 3);
 
                 // Debug
                 //llOwnerSay("User " + llKey2Name(id) + " selected: " + message);
 
+                // If found, no need to check further
                 return;
 
             }
+
         }
 
     }
 
-
+    // Incoming HTTP request
     http_request(key id, string method, string body)
     {
 
@@ -524,7 +527,6 @@ state active
 
     }
 
-
     // This is called when there is a response received 
     // (for self tests and used after generating a new URL to avoid it from getting reoked after 2 mins)
     http_response(key id, integer status, list metaData, string body)
@@ -537,15 +539,18 @@ state active
             // now is a good time to get used to doing it!
             g_kSelfCheckRequestId = NULL_KEY;
  
+            // If not success, renews the URL
             if (status != 200)  { RenewURL(); }
  
         }
 
     }
  
+    // Timer that self-checks URL every 5 minutes
     timer()
     {
         
+        // Doing self-check ping
         g_kSelfCheckRequestId = llHTTPRequest(g_URL,
                                 [HTTP_METHOD, "POST",
                                     HTTP_VERBOSE_THROTTLE, FALSE,
