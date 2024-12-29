@@ -29,9 +29,43 @@ class Clothings
             $this->catNames[$i] = $name;
 
             // Extract the flags as a single string (e.g., "flag1-flag2")
-            preg_match('/\((.*)\)$/', $folder, $matches); // Extract everything inside the parentheses
-            $flags = isset($matches[1]) ? $matches[1] : ""; // Keep the flags as a single string
-            $this->catFlags[$i] = $flags;
+            preg_match('/\((.*)\)$/', $folder, $matches);       // Extract everything inside the parentheses
+            $flags = isset($matches[1]) ? $matches[1] : "";     // Keep the flags as a single string
+            
+            // Separating the flags, for short to regular conversion
+            $flagsArray = explode('-', $flags);
+
+            // Mapping for short flag conversion
+            $mapShortFlags = [
+                'mu' => 'multiple',
+                'ko' => 'keepon',
+                'mn' => 'mandatory',
+                'rf' => 'resetfeet',
+                'hg' => 'hidegenitals',
+                'hp' => 'hideplug',
+                'hn' => 'hidenipples'
+            ];
+
+            // Transforming short flags into regular
+            foreach ($flagsArray as $k => $v) 
+            {
+                
+                // If flag begins by 'r:', becomes 'rel:xxx' (for related categories)
+                if (str_starts_with($v, 'r:')) 
+                {
+                    
+                    $flagsArray[$k] = 'rel:' . substr($v, 2);
+                    continue;
+                
+                }
+                
+                // Else, trying to find flag in mapping table 
+                if (isset($mapShortFlags[$v])) { $flagsArray[$k] = $mapShortFlags[$v]; }
+                
+            }
+            
+            // Actually storing the flags in the array
+            $this->catFlags[$i] = implode('-', $flagsArray);
 
             // Getting the itemps from the database
             $this->catItems[$i] = NVGetList("ClothingPieces" . (integer)$dataset, $folder);
