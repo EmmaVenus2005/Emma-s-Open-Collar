@@ -8,6 +8,9 @@
 $flowName = $msgParts[2] ?? null;
 $session = $msgParts[3] ?? null;
 
+// What comes after the session becomes parameter for the flow (separated by |)
+$flowParams = array_slice($msgParts, 4) ?: [];
+
 if ($flowName === null || $session === null) {
     ErrBadReq();
 }
@@ -23,7 +26,8 @@ if (!preg_match('/^[a-zA-Z0-9_]+$/', $flowName)) {
 }
 
 // Define the path to the flow script
-$flowScript = dirname(__DIR__) . '/flows/' . $appid . '/' . $flowName . '.php';
+$flowPath = dirname(__DIR__) . '/flows/' . $appid;
+$flowScript = $flowPath . '/' . $flowName . '.php';
 
 // Check if the flow script exists
 if (!file_exists($flowScript)) {
@@ -63,6 +67,18 @@ set_time_limit(0);
 
 // Get the directory path containing the PHP files
 $functionsDir = dirname(__DIR__) . '/functions/';
+
+// Ensure the directory exists
+if (is_dir($functionsDir)) {
+    // Scan the directory for PHP files
+    foreach (glob($functionsDir . '*.php') as $filename) {
+        // Include each PHP file
+        require_once $filename;
+    }
+}
+
+// Get the directory path containing the app-specific PHP files
+$functionsDir = $flowPath . '/functions/';
 
 // Ensure the directory exists
 if (is_dir($functionsDir)) {
