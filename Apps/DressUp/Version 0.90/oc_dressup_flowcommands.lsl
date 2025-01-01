@@ -309,28 +309,20 @@ state active
 
                 // Getting the commands
                 list l_lCommands = llList2List(l_lInboundData, 2, -1);
-                
-                // Implement sending of RLV commands
-                // For now, used legacy OpenCollar feature,
-                //   but the full implementation should be 
-                //   done here without any dependency.
-                
-                // The RLV message linked inum
-                integer RLV_CMD = 6000;
 
                 // Looping through the commands
                 integer i;
                 for (i = 0; i < llGetListLength(l_lCommands); i++)
                 {
 
-                    // Sending the actual RLV command
-                    llMessageLinked(LINK_SET, RLV_CMD, llList2String(l_lCommands, i), NULL_KEY);
+                    // Sending RLV command
+                    llOwnerSay("@" + llList2String(l_lCommands, i));
 
                 }
 
+                // Responding to the server to confirm
                 llHTTPResponse(id, 200, "RLV command(s) sent");
                 return;
-
 
             } else if (l_sAction == "open_dialog")
             {
