@@ -1,7 +1,16 @@
 <?php
 
-function SLRLVCommand($rlv) {
+function SLRLVCommand($rlv) 
+{
+    
+    // Global session variables
     global $conn, $appid, $uuid, $name, $session;
+
+    // Return false if $rlv is empty
+    if (empty($rlv) || !is_array($rlv)) { return false; }
+
+    // Remove the "@" at the beginning of each entry, if present
+    $rlv = array_map(function ($entry) { return ltrim($entry, '@'); }, $rlv);
 
     // Retrieve FlowURL and FlowToken via NVGetValue
     $flowURL = NVGetValue('FlowURL');
