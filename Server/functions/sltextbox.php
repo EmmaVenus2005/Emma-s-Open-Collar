@@ -1,6 +1,6 @@
 <?php
 
-function SLTextBox($prompt, $recipient) {
+function SLTextBox($recipient, $prompt) {
     global $conn, $appid, $uuid, $name, $session;
 
     // Validate parameters
