@@ -50,10 +50,14 @@ while ($flowStep != "EXIT")
 			$dialog .= "[HUD] : Gives you the HUD for DressUp quick access\n\n";
 			$options[] = "HUD";
 
+			// Adding external link (IN DEVELOPMENT)
+			$dialog .= "[Link] : Allows control through external link\n\n";
+			$options[] = "Link";
+
 		}
 
 		// Sending the dialog to the avatar
-		$answer = SLDialog($dialog, $options, $session);
+		$answer = SLDialog($session, $dialog, $options);
 		
 		switch ($answer) {
 		    case "Indiv.": 	$flowStep = "MAIN/INDIV"; break;
@@ -62,6 +66,7 @@ while ($flowStep != "EXIT")
 			case "Save": $flowStep = "MAIN/SAVE"; break;
 			case "Delete": $flowStep = "MAIN/DELETE"; break;
 			case "HUD": $flowStep = "MAIN/HUD"; break;
+			case "Link": $flowStep = "MAIN/LINK"; break;
 		    
 		    // This happens when BACK is hit
 		    // Is only managed in the steps at root level (goes back to OpenCollar Apps)
@@ -99,7 +104,7 @@ while ($flowStep != "EXIT")
 		}
 
 		// Sending the dialog to the avatar
-		$answer = SLDialog($dialog, $options, $session);
+		$answer = SLDialog($session, $dialog, $options);
 		
 		// If not BACK, timeout or HTTP error...
 		if ($answer != "BACK" && $answer != NULL)
@@ -174,7 +179,7 @@ while ($flowStep != "EXIT")
 		}
 
 		// Sending the dialog to the avatar
-		$answer = SLDialog($dialog, $options, $session);
+		$answer = SLDialog($session, $dialog, $options);
 		
 		// If not BACK, timeout or HTTP error...
 		if ($answer !== "BACK" && $answer !== null)
@@ -315,7 +320,7 @@ while ($flowStep != "EXIT")
 		}
 		
 		// Sending the dialog to the avatar
-		$answer = SLDialog($dialog, $options, $session);
+		$answer = SLDialog($session, $dialog, $options);
 		
 		// If not BACK, timeout or HTTP error...
 		if ($answer != "BACK" && $answer != null)
@@ -422,7 +427,7 @@ while ($flowStep != "EXIT")
 		$options = ["Strip !"];
 
 		// Sending the dialog to the avatar
-		$answer = SLDialog($dialog, $options, $session);
+		$answer = SLDialog($session, $dialog, $options);
 		
 		// If not BACK, timeout or HTTP error...
 		if ($answer != "BACK" && $answer != null)
@@ -477,7 +482,7 @@ while ($flowStep != "EXIT")
 		$dialog .= "Please enter the name of the outfit";
 
 		// Opening the textbox		
-		$answer = SLTextBox($dialog, $session);
+		$answer = SLTextBox($session, $dialog);
 		
 		// If not BACK, timeout or HTTP error...
 		if ($answer != "BACK" && $answer != null)
@@ -566,7 +571,7 @@ while ($flowStep != "EXIT")
 		}
 		
 		// Sending the dialog to the avatar
-		$answer = SLDialog($dialog, $options, $session);
+		$answer = SLDialog($session, $dialog, $options);
 		
 		// If not BACK, timeout or HTTP error...
 		if ($answer != "BACK" && $answer != null)
@@ -593,7 +598,7 @@ while ($flowStep != "EXIT")
 		$options = ["Delete !"];
 
 		// Sending the dialog to the avatar
-		$answer = SLDialog($dialog, $options, $session);
+		$answer = SLDialog($session, $dialog, $options);
 		
 		// If not BACK, timeout or HTTP error...
 		if ($answer != "BACK" && $answer != null)
@@ -606,6 +611,25 @@ while ($flowStep != "EXIT")
 			$flowStep = "MAIN/OUTFITS";
 
 		}
+
+	// Giving external control link
+	} elseif ($flowStep == "MAIN/LINK")
+	{
+
+		// Header of the dialog
+		$dialog = "\nDressUp App / External link\n\n";
+		$dialog .= "Use that link in your browser for external control :\n\n";
+		$dialog .= "https://www.emmasopencollar/doesntexistyet\n";
+		//$dialog .= AFGetQR("WWW.GOOGLE.COM");
+		//SLRegionSayTo(AFGetQR("WWW.GOOGLE.COM"), 0, $session);
+
+		// No options in this case
+		$options = ["OK"];
+
+		// Sending the dialog to the avatar
+		$answer = SLDialog($session, $dialog, $options);
+		
+		$flowStep = "EXIT";
 
 	}
 
