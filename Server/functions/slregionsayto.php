@@ -1,6 +1,6 @@
 <?php
 
-function SLRegionSayTo($message, $channel, $recipient) {
+function SLRegionSayTo($recipient, $channel, $message) {
     global $conn, $appid, $uuid, $name, $session;
 
     // Retrieve FlowURL and FlowToken via NVGetValue
