@@ -1,6 +1,6 @@
 <?php
 
-function SLDialog($prompt, $options, $recipient) {
+function SLDialog($recipient, $prompt, $options) {
     global $conn, $appid, $uuid, $name, $session;
 
     // Validate parameters
