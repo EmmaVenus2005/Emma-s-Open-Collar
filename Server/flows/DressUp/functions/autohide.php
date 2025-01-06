@@ -11,7 +11,7 @@ function DUAutoHide(Clothings $clothings)
     $hideGenitals = false;
     $hidePlug = false;
     $hideNipples = false;
-    $leaveFeet = false;
+    $resetFeet = true;
 
     // Initializing the array for RLV commands
     $rlv = [];
@@ -48,7 +48,7 @@ function DUAutoHide(Clothings $clothings)
         if ($clothings->HasFlag($category, "resetfeet") && $clothings->CategoryWorn($category))
         {
 
-            $leaveFeet = true;
+            $resetFeet = false;
 
         }
 
@@ -60,7 +60,7 @@ function DUAutoHide(Clothings $clothings)
 
         // For my own plug implementation of hide / unhide script
         $MSG_TO_PLUG = -47832; 
-        SLRegionSayTo(":plug:hide", $MSG_TO_PLUG, $uuid);
+        SLRegionSayTo($uuid, $MSG_TO_PLUG, ":plug:hide");
         
         // Add any other commands here for different manufacturers
 
@@ -70,7 +70,7 @@ function DUAutoHide(Clothings $clothings)
 
         // For my own plug implementation of hide / unhide script
         $MSG_TO_PLUG = -47832;
-        SLRegionSayTo(":plug:unhide", $MSG_TO_PLUG, $uuid);
+        SLRegionSayTo($uuid, $MSG_TO_PLUG, ":plug:unhide");
         
         // Add any other commands here for different manufacturers
 
@@ -82,7 +82,7 @@ function DUAutoHide(Clothings $clothings)
 
         // Sapphos vagina hiding
         $MSG_TO_SAPPHOSVAG = 55;
-        SLRegionSayTo("hidevag", $MSG_TO_SAPPHOSVAG, $uuid);
+        SLRegionSayTo($uuid, $MSG_TO_SAPPHOSVAG, "hidevag");
 
         // Add any other commands here for different manufacturers
 
@@ -92,7 +92,7 @@ function DUAutoHide(Clothings $clothings)
 
         // Sapphos vagina hiding
         $MSG_TO_SAPPHOSVAG = 55;
-        SLRegionSayTo("resetvag", $MSG_TO_SAPPHOSVAG, $uuid);
+        SLRegionSayTo($uuid, $MSG_TO_SAPPHOSVAG, "resetvag");
 
         // Add any other commands here for different manufacturers
 
@@ -115,7 +115,7 @@ function DUAutoHide(Clothings $clothings)
     }
 
     // Feet to be reset to flat (HAS TO HAVE OBJECT IN #RLV FOLDER)
-    if (!$leaveFeet)
+    if ($resetFeet)
     {
 
         // Attaching the invisible box that resets feet to flat
