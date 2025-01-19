@@ -249,6 +249,9 @@ while ($flowStep != "EXIT")
 				// Attaching the requested item
 				$rlv[] = "attachover:" . $g_basePath . $clothings->GetCategoryFolder($category) . "/" . $itemToWear . "=force";
 
+				// Updating the status in the current dataset from DB
+				$clothings->SetItemStatus($category, $itemToWear, 9);
+
 				// Recovers the related categories
 				$related = $clothings->GetRelated($category);
 
@@ -263,8 +266,8 @@ while ($flowStep != "EXIT")
 					foreach ($items as $currentItem => $currentStatus)
 					{			
 
-						// If the item is the one we selected, doesn't add it to the items to detach
-						if (!($category === $currentCat && $itemToWear === $currentItem))
+						// Doesn't add it to the list if not worn or if it's the clothing piece that was selected
+						if (!($category === $currentCat && $itemToWear === $currentItem) && in_array($currentStatus, [2, 3, 9]))
 						{
 
 							// Preparing the RLV commands
@@ -279,9 +282,6 @@ while ($flowStep != "EXIT")
 
 				}
 				
-				// Updating the status in the current dataset from DB
-				$clothings->SetItemStatus($category, $itemToWear, 9);
-
 			}
 
 			// Sending RLV commands
