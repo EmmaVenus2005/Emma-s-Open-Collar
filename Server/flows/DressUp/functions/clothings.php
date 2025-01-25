@@ -43,11 +43,12 @@ class Clothings
                 'rf' => 'resetfeet',
                 'hg' => 'hidegenitals',
                 'hp' => 'hideplug',
-                'hn' => 'hidenipples'
+                'hn' => 'hidenipples',
+                'oo' => 'owneronly'
             ];
 
             // Transforming short flags into regular
-            foreach ($flagsArray as $k => $v) 
+            foreach ($flagsArray as $k => $v)
             {
                 
                 // If flag begins by 'r:', becomes 'rel:xxx' (for related categories)
