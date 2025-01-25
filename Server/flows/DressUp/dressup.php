@@ -98,6 +98,22 @@ while ($flowStep != "EXIT")
 		foreach($categories as $i => $category)
 		{
 
+			// Checks if the current category is for owner only
+			$isForbidden = ($clothings->HasFlag($category, "owneronly") && $session !== $uuid);
+
+			// If the category is forbidden
+			if ($isForbidden)
+			{
+
+				// Adding interdiction sign instead of the index
+				$dialog .= "⛔" . " - " . $category . "\n";
+
+				// Getting to the next category
+				continue;
+
+			}
+			
+			// Adding the category to the list, if not forbidden
 			$dialog .= (string)($i + 1) . " - " . $category . "\n";
 			$options[] = (string)($i + 1);
 
