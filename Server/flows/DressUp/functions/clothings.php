@@ -240,9 +240,9 @@ class Clothings
         $items = NVGetList("ClothingPieces" . (integer)$dataset, $folder);
 
         // Construct the regex to match each item and extract its value
-        // Pattern matches ",<item_name>|<value>"
-        $pattern = '/,\s*([^|]+)\|(\d{2})/';
-    
+        // Pattern matches ",<item_name>|<value>" (the ',' is optional, to include first element)
+        $pattern = '/(?:^|,\s*)([^|]+)\|(\d{2})/';
+       
         // Initializing an empty array
         $result = [];
     
@@ -316,35 +316,32 @@ class Clothings
     }
     
     // Sets the worn status for a particular item
-    public function SetItemStatus(string $cat, string $item, int $status): void 
+    public function SetItemStatus(string $cat, string $item, int $status): void
     {
-
-        // Gets the folder, which is the actual list name in the databade
+        
+        // Get the folder, which is the actual list name in the database
         $folder = $this->GetCategoryFolder($cat);
-    
-        // Reading the current dataset
+
+        // Get the current dataset
         $dataset = NVGetValue("DirFetchCurrentDataset");
 
-        // Reads the items
-        $items = NVGetList("ClothingPieces" . (integer)$dataset, $folder);
+        // Retrieve the items list
+        $items = NVGetList("ClothingPieces" . (int)$dataset, $folder);
 
-        // Locate the item in the sequence
-        $search = ",{$item}|";
-        $position = strpos($items, $search);
-    
-        if ($position !== false) 
-        {
-        
-            // Find the start position of the value associated with the item
-            $digitPosition = $position + strlen($search);
-    
-            // Replace the second digit directly
-            $items[$digitPosition] = (string)$status;
+        // Use regex to locate the item and capture its two-digit status.
+        $pattern = '/((?<=^|,)' . preg_quote($item, '/') . '\|)(\d)(\d)/';
 
-        }
+        // Replace only the first digit with $status using a callback.
+        $newItems = preg_replace_callback($pattern, function ($matches) use ($status) {
+            // Return the concatenation of:
+            //   - Group 1: "ItemName|"
+            //   - The new first digit (converted to string)
+            //   - Group 3: the unchanged second digit
+            return $matches[1] . (string)$status . $matches[3];
+        }, $items, 1);
 
-        // Database update
-        NVSetList("ClothingPieces" . (integer)$dataset, $folder, $items);
+        // Update the database with the modified items list.
+        NVSetList("ClothingPieces" . (int)$dataset, $folder, $newItems);
 
     }
 
