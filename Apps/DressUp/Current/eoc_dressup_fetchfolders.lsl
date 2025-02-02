@@ -326,8 +326,18 @@ Flow(integer iWay,string sStr)
         if(iWay == DIALOG)
         {
 
+            // Separating other elements by ,
+            list l_lList = llParseString2List(g_sLastMessage, [","], []);
+
+            // Removing the first element of the list, which is '|01' 
+            // (global folder status, we don't use it)
+            l_lList = llList2List(l_lList, 1, -1);
+
+            // Sorting out alphabetically the elements
+            l_lList = llListSort(l_lList, 1, TRUE);
+
             // Sending list to the server
-            NVRequest("setlist", "ClothingPieces" + (string)g_iDatasetToUpdate + "|" + llList2String(g_lFolders, g_iCurrentSubfolder) + "|" + g_sLastMessage);
+            NVRequest("setlist", "ClothingPieces" + (string)g_iDatasetToUpdate + "|" + llList2String(g_lFolders, g_iCurrentSubfolder) + "|" + llDumpList2String(l_lList, ","));
 
         // Response
         } else
