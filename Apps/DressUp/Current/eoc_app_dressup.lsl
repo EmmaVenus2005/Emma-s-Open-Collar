@@ -64,6 +64,10 @@ integer CMD_GROUP = 502;                // Command sent by members of the object
 integer CMD_WEARER = 503;               // Command sent by the wearer of the object
 integer CMD_EVERYONE = 504;             // Command sent by anyone (public command)
 
+// Constants used for HTTP requests using oc_nonvolatile
+integer NV_REQUEST = 10800;
+integer NV_RESPONSE = 10801;
+
 // Channel for ASS : Advanced Sore System (more info soon)
 integer ASS_CHANNEL = -696969;
 
@@ -118,9 +122,8 @@ state active
         if (message == ":app:dressup:home") 
         {
             
-            // Constant to identify a flow start linked message
-            integer FLOW_START = 10850;
-            llMessageLinked(LINK_SET, FLOW_START, "dressup", llGetOwner());            
+            // Starting the flow  
+            llMessageLinked(LINK_SET, NV_REQUEST, "flowstart|dressup|" + (string)llGetOwner(), NULL_KEY);
 
         }
 
@@ -146,10 +149,9 @@ state active
             // Avoids executing further when we're not on the root level from this app
             if (llSubStringIndex(sStr, llToLower(g_sSubMenu)) && sStr != "menu " + g_sSubMenu) return;
 
-            // Constant to identify a flow start linked message
-            integer FLOW_START = 10850;
-            llMessageLinked(LINK_SET, FLOW_START, "dressup", kID);         
-        
+            // Starting the flow  
+            llMessageLinked(LINK_SET, NV_REQUEST, "flowstart|dressup|" + (string)kID, NULL_KEY);
+         
         // Reset script on reboot
         } else if (iNum == REBOOT) 
         {
