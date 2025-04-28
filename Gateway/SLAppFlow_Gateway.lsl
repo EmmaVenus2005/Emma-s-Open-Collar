@@ -228,8 +228,8 @@ ExecuteRLVRequest()
     g_iRLVSecondaryListener = llListen(g_iRLVSecondaryChannel, "", llGetOwner(), "");
 
     // Prepare the commands by replacing '#' with the respective channels
-    string l_sPrimaryCommand = llDumpList2String(llParseString2List(l_sCommand, ["#"], []), (string)g_iRLVPrimaryChannel);
-    string l_sSecondaryCommand = llDumpList2String(llParseString2List(l_sCommand, ["#"], []), (string)g_iRLVSecondaryChannel);
+    string l_sPrimaryCommand = llInsertString(llDeleteSubString(l_sCommand, llSubStringIndex(l_sCommand, "#"), llSubStringIndex(l_sCommand, "#")), llSubStringIndex(l_sCommand, "#"), (string)g_iRLVPrimaryChannel);
+    string l_sSecondaryCommand = llInsertString(llDeleteSubString(l_sCommand, llSubStringIndex(l_sCommand, "#"), llSubStringIndex(l_sCommand, "#")), llSubStringIndex(l_sCommand, "#"), (string)g_iRLVSecondaryChannel);
 
     // Send the commands
     llOwnerSay("@" + l_sPrimaryCommand);
