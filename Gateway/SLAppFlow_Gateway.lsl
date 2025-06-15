@@ -1,10 +1,13 @@
 // SLFlowApp gateway script, by EmmaVenus2005 from Second Life
 // 
 // This script is meant to be a standart version of the gateway allowing external app running.
-// The goal is not avoid any LSL code unless that script.
+// The goal is not avoid any LSL code unless this script.
 
 // Used to get the "nv_appid", "nv_url" and "nv_secret" from linkset (script has to be nomod in order to avoid it getting revealed)
 string g_sLinksetPassword = "";
+
+// Gateway version (float value)
+float g_fGatewayVersion = 0.95;
 
 // Global variables for server access
 string g_sAppID;
@@ -91,7 +94,8 @@ NVRequest(string sReqType, string sReqData)
     // Headers
     list l_lHeaders = [
         HTTP_METHOD, "POST", 
-        HTTP_MIMETYPE, "application/x-www-form-urlencoded"
+        HTTP_MIMETYPE, "application/x-www-form-urlencoded",
+        HTTP_CUSTOM_HEADER, "X-AFGatewayVersion", (string)g_fGatewayVersion
         ];
 
     // Send the HTTP request
@@ -334,21 +338,8 @@ default
     link_message(integer iSender, integer iNum, string sStr, key kID)
     {
     
-        // // If flow start request from linkset...
-        // if (iNum == FLOW_START)
-        // {
-
-        //     // Starting the flow
-        //     NVRequest("flowstart", sStr + "|" + (string)kID);
-
-        // /* // Once URL has been sent to server...
-        // } else if (iNum == NV_RESPONSE && kID == g_kRequestID)
-        // {
-
-        //     // Stays here in case of
-
-        // */
-        // } 
+        // Starting the event on_linkset_message
+        NVRequest("flowstart", "on_linkset_message|" + (string)iSender + "|" + (string)iNum + "|" + sStr + "|" + (string)kID);
 
     }
 
