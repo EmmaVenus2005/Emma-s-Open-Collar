@@ -7,7 +7,7 @@
 string g_sLinksetPassword = "";
 
 // Gateway version (float value)
-float g_fGatewayVersion = 0.95;
+float g_fGatewayVersion = 0.951;
 
 // Global variables for server access
 string g_sAppID;
@@ -260,6 +260,15 @@ default
         g_sAppID = llLinksetDataReadProtected("nv_appid", g_sLinksetPassword);
         g_sURL = llLinksetDataReadProtected("nv_url", g_sLinksetPassword);
         g_sSecretSalt = llLinksetDataReadProtected("nv_secret", g_sLinksetPassword);
+
+         // Check if one of the values is missing
+        if (g_sAppID == "" || g_sURL == "" || g_sSecretSalt == "")
+        {
+            
+            // State to "off" if the linkset data is not complete
+            state off;
+        
+        }
 
         // Creates a new URL and token
         RenewURL();
@@ -943,3 +952,6 @@ default
     }
 
 }
+
+// Empty state when the linkset data is not complete
+state off {}
