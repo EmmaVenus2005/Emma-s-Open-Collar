@@ -954,4 +954,4 @@ default
 }
 
 // Empty state when the linkset data is not complete
-state off {}
+state off { state_entry() {} }
