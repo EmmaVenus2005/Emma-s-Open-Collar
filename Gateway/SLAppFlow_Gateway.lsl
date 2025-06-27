@@ -7,7 +7,7 @@
 string g_sLinksetPassword = "";
 
 // Gateway version (float value)
-float g_fGatewayVersion = 0.951;
+float g_fGatewayVersion = 0.952;
 
 // Global variables for server access
 string g_sAppID;
@@ -322,6 +322,7 @@ default
         vector touchNormal = llDetectedTouchNormal(i);         // Surface normal vector
         vector touchBinormal = llDetectedTouchBinormal(i);     // Surface binormal vector
         vector touchPos = llDetectedTouchPos(i);               // Local position on the object
+        integer touchedLink = llDetectedLinkNumber(i);         // Link number of the touched object (0 for root prim)
 
         // Combine all data into a single string separated by "|"
         string touchInfo =
@@ -336,7 +337,8 @@ default
             (string)touchedFace + "|" +
             (string)touchNormal + "|" +
             (string)touchBinormal + "|" +
-            (string)touchPos;
+            (string)touchPos + "|" +
+            (string)touchedLink;
 
         // Launching on_touch event flow (if existing)
         NVRequest("flowstart", "on_touch|" + touchInfo);
