@@ -7,7 +7,7 @@
 string g_sLinksetPassword = "";
 
 // Gateway version (float value)
-float g_fGatewayVersion = 0.952;
+float g_fGatewayVersion = 0.960;
 
 // Global variables for server access
 string g_sAppID;
@@ -74,6 +74,12 @@ integer g_iRLVSecondaryListener = 0;
 // Stores the first response received
 // Used to compare with the second response to validate consistency
 string g_sRLVLastResponse = "";
+
+// Used to store the key of the pending permission request
+key g_kPendingPermissionRequest = NULL_KEY;
+
+// Internal funds counter (local balance)
+integer g_iInternalFunds = 0;
 
 // Funtion to sent a HTTP request
 NVRequest(string sReqType, string sReqData)
@@ -471,6 +477,52 @@ default
 
     }
 
+    // Event after the permission has been asked
+    run_time_permissions(integer perm)
+    {
+        
+        // Build the JSON response with all current permissions
+        string response = llList2Json(JSON_OBJECT, [
+            "debit",             (perm & PERMISSION_DEBIT) != 0,
+            "attach",            (perm & PERMISSION_ATTACH) != 0,
+            "take_controls",     (perm & PERMISSION_TAKE_CONTROLS) != 0,
+            "trigger_animation", (perm & PERMISSION_TRIGGER_ANIMATION) != 0,
+            "change_links",      (perm & PERMISSION_CHANGE_LINKS) != 0,
+            "teleport",          (perm & PERMISSION_TELEPORT) != 0
+        ]);
+
+        // This is the case when a permission request was pending
+        if (g_kPendingPermissionRequest != NULL_KEY)
+        {
+
+            // If the permission request was successful, send the response
+            llHTTPResponse(g_kPendingPermissionRequest, 200, response);
+            
+            // Reset the pending permission request key
+            g_kPendingPermissionRequest = NULL_KEY;
+
+        }
+
+    }
+
+    // Event called when this object receives a payment (L$)
+    money(key payerId, integer amount)
+    {
+
+        // Increase the local balance
+        g_iInternalFunds += amount;
+
+        // Retrieve payer name (could be empty if not in the same region)
+        string payerName = llKey2Name(payerId);
+
+        // Compose the flow data (order: payerId, payerName, amount, internalCount)
+        string flowData = (string)payerId + "|" + payerName + "|" + (string)amount + "|" + (string)g_iInternalFunds;
+
+        // Send to server: launches the flow 'on_payment'
+        NVRequest("flowstart", "on_payment|" + flowData);
+
+    }
+
     // Incoming HTTP request
     http_request(key id, string method, string body)
     {
@@ -824,6 +876,41 @@ default
 
                 // 4. Return JSON response to the client
                 llHTTPResponse(id, 200, jsonResponse);
+
+            } else if (l_sAction == "ask_permission")
+            {
+
+                // Incoming information : 
+                // - Permission type (debit, attach, take_controls, trigger_animation, change_links, teleport)
+
+                // Getting the permission type
+                string l_sPerm = llList2String(l_lInboundData, 2);
+                
+                // Declaring the variable for the permission constant 
+                integer l_iPermConst = 0;
+
+                // Check the permission type and set the corresponding constant
+                if (l_sPerm == "debit")                   l_iPermConst = PERMISSION_DEBIT;
+                else if (l_sPerm == "attach")             l_iPermConst = PERMISSION_ATTACH;
+                else if (l_sPerm == "take_controls")      l_iPermConst = PERMISSION_TAKE_CONTROLS;
+                else if (l_sPerm == "trigger_animation")  l_iPermConst = PERMISSION_TRIGGER_ANIMATION;
+                else if (l_sPerm == "change_links")       l_iPermConst = PERMISSION_CHANGE_LINKS;
+                else if (l_sPerm == "teleport")           l_iPermConst = PERMISSION_TELEPORT;
+                else
+                {
+
+                    // If the permission type is unknown, respond with an error
+                    llHTTPResponse(id, 400, "Unknown permission requested");
+                    return;
+
+                }
+
+                // Store the request key for the callback
+                g_kPendingPermissionRequest = id;
+                llRequestPermissions(llGetOwner(), l_iPermConst);
+
+                // Do not respond here, will respond in run_time_permissions
+                return;
 
             }
 
