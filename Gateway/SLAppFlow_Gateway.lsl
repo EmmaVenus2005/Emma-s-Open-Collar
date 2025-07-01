@@ -7,7 +7,7 @@
 string g_sLinksetPassword = "";
 
 // Gateway version (float value)
-float g_fGatewayVersion = 0.960;
+float g_fGatewayVersion = 0.961;
 
 // Global variables for server access
 string g_sAppID;
@@ -80,6 +80,9 @@ key g_kPendingPermissionRequest = NULL_KEY;
 
 // Internal funds counter (local balance)
 integer g_iInternalFunds = 0;
+
+// Global timer list: each stride is [key, datetime]
+list g_lTimers = [];
 
 // Funtion to sent a HTTP request
 NVRequest(string sReqType, string sReqData)
@@ -912,6 +915,81 @@ default
                 // Do not respond here, will respond in run_time_permissions
                 return;
 
+            } else if (l_sAction == "add_timer")
+            {
+                
+                // Incoming information : 
+                // - Timer key
+                // - Datetime
+
+                // Checking if all the information are provided
+                if (llGetListLength(l_lInboundData) != 4)
+                {
+                    
+                    llHTTPResponse(id, 400, "Bad request");
+                    return;
+                
+                }
+
+                // Getting the key and timestamp
+                string l_sTimerKey = llList2String(l_lInboundData, 2);
+                integer l_iTimerWhen = (integer)llList2String(l_lInboundData, 3);
+
+                // Looping through the timer list
+                integer i;
+                for (i = 0; i < llGetListLength(g_lTimers); i += 2)
+                {
+
+                    // If a timer with the same key already existed
+                    if (llList2String(g_lTimers, i) == l_sTimerKey)
+                    {
+
+                        // In case the timestamp is null, removes it
+                        if (l_iTimerWhen == 0)
+                        {
+                            
+                            // Remove timer if new time is 0
+                            g_lTimers = llDeleteSubList(g_lTimers, i, i+1);
+                            llHTTPResponse(id, 200, "Timer deleted");
+                            return;
+                            
+                        }
+                        else
+                        {
+                            
+                            // Update existing timer value
+                            g_lTimers = llListReplaceList(g_lTimers, [l_sTimerKey, l_iTimerWhen], i, i+1);
+                            llHTTPResponse(id, 200, "Timer updated");
+                            return;
+                            
+                        }
+                        
+                    }
+                    
+                }
+                
+                // If not found in the existing list, add new timer
+                if (l_iTimerWhen != 0)
+                {
+                    
+                    g_lTimers += [ l_sTimerKey, l_iTimerWhen ];
+                    llHTTPResponse(id, 200, "Timer added");
+                
+                }
+                else
+                {
+                    
+                    // Timer to remove not found
+                    llHTTPResponse(id, 404, "Timer not found");
+                    
+                }
+
+                // Debug
+                //llOwnerSay("Timer list : " + llDumpList2String(g_lTimers, ", "));
+
+                // End of processing
+                return;
+
             }
 
             // If no revelant action has been found
@@ -1033,6 +1111,41 @@ default
                     ExecuteRLVRequest();
 
                 }
+
+            }
+
+        }
+
+        // Handle custom timer triggers if any are scheduled
+        if (llGetListLength(g_lTimers) > 0)
+        {
+            
+            // Get the current time in seconds since epoch
+            integer l_iNow = llGetUnixTime();
+            
+            // Each stride: [key, datetime]
+            integer i = 0;
+            while (i < llGetListLength(g_lTimers))
+            {
+                
+                // Get the timer key and when it should trigger
+                string l_sTimerKey = llList2String(g_lTimers, i);
+                integer l_iTimerWhen = llList2Integer(g_lTimers, i + 1);
+
+                // If this timer should trigger now or in the past
+                if (l_iTimerWhen <= l_iNow)
+                {
+                    
+                    // Start the on_timer flow, passing the key as a parameter
+                    NVRequest("flowstart", "on_timer|" + l_sTimerKey);
+
+                    // Remove this timer entry from the list
+                    g_lTimers = llDeleteSubList(g_lTimers, i, i + 1);
+                    
+                    // Do not increment i: next timer now at the same index
+
+                }
+                else { i += 2; } // Move to the next timer entry
 
             }
 
