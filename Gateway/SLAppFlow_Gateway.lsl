@@ -7,7 +7,7 @@
 string g_sLinksetPassword = "";
 
 // Gateway version (float value)
-float g_fGatewayVersion = 0.961;
+float g_fGatewayVersion = 0.965;
 
 // Global variables for server access
 string g_sAppID;
@@ -252,6 +252,98 @@ ExecuteRLVRequest()
     g_fRLVRequestSentOn = llGetUnixTime();
     g_iRLVRequestPending = 1;
     
+}
+
+// Applies a texture or media block based on a JSON input
+ApplyVisualBlock(string json)
+{
+    
+    // Read core fields
+    integer link    = (integer)llJsonGetValue(json, ["link"]);
+    integer face    = (integer)llJsonGetValue(json, ["face"]);
+    string  type    = llJsonGetValue(json, ["type"]);
+
+    vector scale  = <(float)llJsonGetValue(json, ["scale", 0]),
+                     (float)llJsonGetValue(json, ["scale", 1]), 0.0>;
+
+    vector offset = <(float)llJsonGetValue(json, ["offset", 0]),
+                     (float)llJsonGetValue(json, ["offset", 1]), 0.0>;
+
+    float rot = (float)llJsonGetValue(json, ["rotation"]);
+
+    // Apply texture type
+    if (type == "texture")
+    {
+        string texValue = llJsonGetValue(json, ["texture", "value"]);
+        string texSource = llJsonGetValue(json, ["texture", "source"]);
+
+        // Remove the media if it was set on the face
+        llClearLinkMedia(link, face);
+
+        // Apply the texture directly to the given link/face
+        llSetLinkPrimitiveParams(link, [
+            PRIM_TEXTURE, face, texValue, scale, offset, rot
+        ]);
+    }
+
+    // Apply media type
+    else if (type == "media")
+    {
+
+        string url      = llJsonGetValue(json, ["media", "url"]);
+        integer width   = (integer)llJsonGetValue(json, ["media", "width"]);
+        integer height  = (integer)llJsonGetValue(json, ["media", "height"]);
+        integer autoPlay = (integer)llJsonGetValue(json, ["media", "auto_play"]);
+        integer autoScale = (integer)llJsonGetValue(json, ["media", "auto_scale"]);
+
+        // Whitelist handling
+        string rawList = llJsonGetValue(json, ["media", "whitelist"]);
+        list whitelist = [];
+        integer i = 0;
+        while (llJsonValueType(rawList, [i]) == JSON_STRING) {
+            whitelist += llJsonGetValue(rawList, [i]);
+            ++i;
+        }
+
+        // CSV format for whitelist
+        string whitelistCSV = llDumpList2String(whitelist, ",");
+        
+        // If list contains something, is true
+        integer enableWhitelist = llGetListLength(whitelist) > 0;
+
+        string interact = llJsonGetValue(json, ["media", "interact"]);
+        string ctrl  = llJsonGetValue(json, ["media", "control"]);
+
+        integer permInteract = PRIM_MEDIA_PERM_NONE;
+        if (interact == "owner")      permInteract = PRIM_MEDIA_PERM_OWNER;
+        else if (interact == "group") permInteract = PRIM_MEDIA_PERM_GROUP;
+        else if (interact == "anyone") permInteract = PRIM_MEDIA_PERM_ANYONE;
+
+        integer permControl = PRIM_MEDIA_PERM_NONE;
+        if (ctrl == "owner")      permControl = PRIM_MEDIA_PERM_OWNER;
+        else if (ctrl == "group") permControl = PRIM_MEDIA_PERM_GROUP;
+        else if (ctrl == "anyone") permControl = PRIM_MEDIA_PERM_ANYONE;
+
+        // Apply blank texture for media with mapping
+        llSetLinkPrimitiveParams(link, [
+            PRIM_TEXTURE, face, TEXTURE_BLANK, scale, offset, rot
+        ]);
+
+        // Apply media
+        llSetPrimMediaParams(face, [
+            PRIM_MEDIA_CURRENT_URL, url,
+            PRIM_MEDIA_HOME_URL, url,
+            PRIM_MEDIA_AUTO_PLAY, autoPlay,
+            PRIM_MEDIA_AUTO_SCALE, autoScale,
+            PRIM_MEDIA_WIDTH_PIXELS, width,
+            PRIM_MEDIA_HEIGHT_PIXELS, height,
+            PRIM_MEDIA_WHITELIST_ENABLE, enableWhitelist,
+            PRIM_MEDIA_WHITELIST, whitelistCSV,
+            PRIM_MEDIA_PERMS_INTERACT, permInteract,
+            PRIM_MEDIA_PERMS_CONTROL, permControl
+        ]);
+    }
+
 }
 
 // Default state of the script
@@ -988,6 +1080,41 @@ default
                 //llOwnerSay("Timer list : " + llDumpList2String(g_lTimers, ", "));
 
                 // End of processing
+                return;
+
+            } else if (l_sAction == "apply_texture")
+            {
+                
+                // Incoming information : 
+                // - JSON structure (for texture or media block)
+                
+                // Check if the JSON payload is provided
+                if (llGetListLength(l_lInboundData) < 3)
+                {
+                    llHTTPResponse(id, 400, "Bad request: missing JSON content");
+                    return;
+                }
+
+                // Recover the JSON string (all parts after the 2nd index re-joined)
+                string l_sJson = llDumpList2String(llList2List(l_lInboundData, 2, -1), "|");
+
+                if (llJsonValueType(l_sJson, []) == JSON_ARRAY)
+                {
+                    
+                    // Loop through each block
+                    integer i;
+                    for (i = 0; i < llGetListLength(llJson2List(l_sJson)); i++)
+                    {
+                        
+                        string block = llJsonGetValue(l_sJson, [i]);
+                        ApplyVisualBlock(block);
+                    
+                    }
+
+                } else { ApplyVisualBlock(l_sJson); } // Single block
+
+                // Acknowledge success
+                llHTTPResponse(id, 200, "Visual block applied");
                 return;
 
             }
