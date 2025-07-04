@@ -7,7 +7,7 @@
 string g_sLinksetPassword = "";
 
 // Gateway version (float value)
-float g_fGatewayVersion = 0.965;
+float g_fGatewayVersion = 0.970;
 
 // Global variables for server access
 string g_sAppID;
@@ -91,8 +91,11 @@ NVRequest(string sReqType, string sReqData)
     // Generate a unique menu ID for this request
     g_kRequestID = llGenerateKey();
 
-    // Mixing the owner key with the secret salt, and hashing it
-    string l_sHash = llSHA256String((string)llGetOwner() + g_sSecretSalt + llGetDate());
+    // Gets the date in following format : "2025-07-04T13:24"
+    string l_sDatetime = llGetSubString(llGetTimestamp(), 0, 15);
+
+    // Mixing together some stuff to get a unique hash
+    string l_sHash = llSHA256String((string)llGetOwner() + g_sSecretSalt + l_sDatetime + (string)g_kRequestID);
 
     // Create the request body
     string requestBody = "reqid=" + (string)g_kRequestID + "&reqcheck=" + l_sHash + "&request=" + g_sAppID + "|" + sReqType + "|" + sReqData;
