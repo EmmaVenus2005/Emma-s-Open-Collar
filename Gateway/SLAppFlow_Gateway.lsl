@@ -7,7 +7,7 @@
 string g_sLinksetPassword = "";
 
 // Gateway version (float value)
-float g_fGatewayVersion = 0.970;
+float g_fGatewayVersion = 0.975;
 
 // Global variables for server access
 string g_sAppID;
@@ -1118,6 +1118,33 @@ default
 
                 // Acknowledge success
                 llHTTPResponse(id, 200, "Visual block applied");
+                return;
+
+            } else if (l_sAction == "instant_message") 
+            {
+                
+                // Incoming information : 
+                // - Recipient UUID
+                // - Instant_message
+
+                // Check that we have at least a UUID and a message
+                if (llGetListLength(l_lInboundData) < 4) 
+                {
+                    llHTTPResponse(id, 400, "Bad request: missing UUID or message");
+                    return;
+                }
+
+                // Retrieve the recipient of the message
+                key l_kRecipient = llList2Key(l_lInboundData, 2);
+                
+                // Retrieve the message (all parts after the 3rd field, joined with pipes in case the message contains them)
+                string l_sMessage = llDumpList2String(llList2List(l_lInboundData, 3, -1), "|");
+
+                // Send the instant message
+                llInstantMessage(l_kRecipient, l_sMessage);
+
+                // Successfully sent
+                llHTTPResponse(id, 200, "Instant message sent");
                 return;
 
             }
