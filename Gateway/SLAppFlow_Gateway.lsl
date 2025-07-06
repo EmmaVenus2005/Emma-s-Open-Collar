@@ -7,7 +7,7 @@
 string g_sLinksetPassword = "";
 
 // Gateway version (float value)
-float g_fGatewayVersion = 0.975;
+float g_fGatewayVersion = 0.990;
 
 // Global variables for server access
 string g_sAppID;
@@ -1145,6 +1145,179 @@ default
 
                 // Successfully sent
                 llHTTPResponse(id, 200, "Instant message sent");
+                return;
+
+            } else if (l_sAction == "pay")
+            {
+
+                // Incoming information:
+                // - Recipient UUID
+                // - Amount in L$
+
+                // Check that we have at least a UUID and amount
+                if (llGetListLength(l_lInboundData) != 4)
+                {
+                    llHTTPResponse(id, 400, "Bad request: missing recipient or amount");
+                    return;
+                }
+
+                // Getting the recipient of the money
+                key l_kRecipient = llList2Key(l_lInboundData, 2);
+
+                // Get the amount as a string for strict verification
+                string l_sAmount = llList2String(l_lInboundData, 3);
+
+                // Converting the amount as integer
+                integer l_iAmount = (integer)llList2String(l_lInboundData, 3);
+
+                // Strict check: amount must be a positive integer, and the string must match the integer cast
+                if (l_iAmount <= 0 || (string)l_iAmount != l_sAmount)
+                {
+                    llHTTPResponse(id, 400, "Bad request: invalid amount value");
+                    return;
+                }
+
+                // Check internal balance (object's received funds)
+                if (g_iInternalFunds < l_iAmount)
+                {
+                    llHTTPResponse(id, 402, "Insufficient funds in the local balance");
+                    return;
+                }
+
+                // Check PERMISSION_DEBIT
+                if (!(llGetPermissions() & PERMISSION_DEBIT))
+                {
+                    llHTTPResponse(id, 401, "Unauthorized: PERMISSION_DEBIT not granted");
+                    return;
+                }
+
+                // Proceed to pay and decrement balance
+                llGiveMoney(l_kRecipient, l_iAmount);
+                g_iInternalFunds -= l_iAmount;
+
+                // Respond with success
+                llHTTPResponse(id, 200, "Payment sent");
+                return;
+
+            } else if (l_sAction == "link_info") 
+            {
+
+                // Incoming information:
+                // - Link number
+                                
+                // Check if we have all the incoming parameters
+                if (llGetListLength(l_lInboundData) != 3) {
+                    llHTTPResponse(id, 400, "Bad request: linknum required");
+                    return;
+                }
+
+                // Getting the integer of the link number
+                integer linknum = (integer)llList2String(l_lInboundData, 2);
+                integer prims = llGetNumberOfPrims();
+
+                // Checks if it's a valid integer of an existing prim
+                if (linknum < 1 || linknum > prims) {
+                    llHTTPResponse(id, 400, "Invalid link number");
+                    return;
+                }
+
+                // Gets the local position
+                vector pos = llList2Vector(llGetLinkPrimitiveParams(linknum, [PRIM_POS_LOCAL]), 0);
+
+                // Gets the local rotation
+                rotation rot = llList2Rot(llGetLinkPrimitiveParams(linknum, [PRIM_ROT_LOCAL]), 0);
+
+                // Prepare a list to hold info for all faces
+                list faces_info = [];
+
+                // Get number of sides (faces) for this prim
+                integer faces = llGetLinkNumberOfSides(linknum);
+
+                // Get the name of the prim
+                string name = llGetLinkName(linknum);
+
+                // Loop through all faces (usually 0 to 5, but can be less for some prim shapes)
+                integer f;
+                for (f = 0; f < faces; ++f)
+                {
+                    
+                    // Get color and alpha for this face
+                    list colorParams = llGetLinkPrimitiveParams(linknum, [PRIM_COLOR, f]);
+                    vector color = llList2Vector(colorParams, 0);
+                    float alpha = llList2Float(colorParams, 1);
+
+                    // Get texture UUID and repeats/offsets/rotation
+                    list texParams = llGetLinkPrimitiveParams(linknum, [PRIM_TEXTURE, f]);
+                    string texture = llList2String(texParams, 0);
+                    vector repeats = llList2Vector(texParams, 1);
+                    vector offsets = llList2Vector(texParams, 2);
+                    float rot      = llList2Float(texParams, 3);
+
+                    // Build a JSON object for this face
+                    string face_json = llList2Json(JSON_OBJECT, [
+                        "face",    f,
+                        "color",   llList2Json(JSON_ARRAY, [color.x, color.y, color.z]),
+                        "alpha",   alpha,
+                        "texture", texture,
+                        "repeats", llList2Json(JSON_ARRAY, [repeats.x, repeats.y]),
+                        "offsets", llList2Json(JSON_ARRAY, [offsets.x, offsets.y]),
+                        "rotation", rot
+                    ]);
+
+                    // Add this face info to the list
+                    faces_info += [face_json];
+
+                }
+
+                // Creating the output JSON
+                string response = llList2Json(JSON_OBJECT, [
+                    "linknum", linknum,
+                    "face_count", faces,
+                    "name", name,
+                    "local_position", llList2Json(JSON_ARRAY, [pos.x, pos.y, pos.z]),
+                    "faces", llList2Json(JSON_ARRAY, faces_info)
+                ]);
+
+                // Sending the response
+                llHTTPResponse(id, 200, response);
+                return;
+
+            } else if (l_sAction == "set_child_pos") 
+            {
+
+                // Incoming information:
+                // - Link number
+                // - X pposition (local)
+                // - Y pposition (local)
+                // - Z pposition (local)
+
+                // Check if we have all the incoming parameters
+                if (llGetListLength(l_lInboundData) != 6) {
+                    llHTTPResponse(id, 400, "Bad request: linknum and x,y,z required");
+                    return;
+                }
+
+                // Getting the float values
+                integer linknum = (integer)llList2String(l_lInboundData, 2);
+                float x = (float)llList2String(l_lInboundData, 3);
+                float y = (float)llList2String(l_lInboundData, 4);
+                float z = (float)llList2String(l_lInboundData, 5);
+
+                // Checking if we have a valid prim number (can't be 1, which is root)
+                integer prims = llGetNumberOfPrims();
+                if (linknum < 2 || linknum > prims) {
+                    llHTTPResponse(id, 400, "Invalid link number (must be >=2 and <= prim count)");
+                    return;
+                }
+
+                // Creates a vector using the input position
+                vector newpos = <x, y, z>;
+
+                // Apply the new local position
+                llSetLinkPrimitiveParamsFast(linknum, [PRIM_POSITION, newpos]);
+
+                // Successfully moved
+                llHTTPResponse(id, 200, "Child prim moved");
                 return;
 
             }
