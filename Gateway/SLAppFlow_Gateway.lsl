@@ -7,7 +7,7 @@
 string g_sLinksetPassword = "";
 
 // Gateway version (float value)
-float g_fGatewayVersion = 0.990;
+float g_fGatewayVersion = 0.995;
 
 // Global variables for server access
 string g_sAppID;
@@ -638,7 +638,7 @@ default
             g_sToken = (string)llGenerateKey();
 
             // Sending HTTP inbound URL and token to the server
-            NVRequest("seturl", "FlowURL|" + body + "|FlowToken|" + g_sToken);
+            NVRequest("seturl", "FlowURL|" + body + "|FlowToken|" + g_sToken + "|GatewayVersion|" + (string)g_fGatewayVersion);
 
             // No need to check other conditions or send response
             return;
