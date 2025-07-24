@@ -7,7 +7,7 @@
 string g_sLinksetPassword = "";
 
 // Gateway version (float value)
-float g_fGatewayVersion = 0.995;
+float g_fGatewayVersion = 0.996;
 
 // Global variables for server access
 string g_sAppID;
@@ -1145,6 +1145,35 @@ default
 
                 // Successfully sent
                 llHTTPResponse(id, 200, "Instant message sent");
+                return;
+
+            } else if (l_sAction == "payment_options")
+            {
+
+                // Incoming information:
+                // - Default payment value (use -1 to disable)
+                // - Four quick-pay button values (use -1 to disable)
+
+                // Checking if we have all the needed parameters
+                if (llGetListLength(l_lInboundData) != 7)
+                {
+                    llHTTPResponse(id, 400, "Bad request: 5 parameters expected");
+                    return;
+                }
+
+                // Changes the payment options
+                llSetPayPrice(
+                    (integer)llList2String(l_lInboundData, 2),
+                    [
+                        (integer)llList2String(l_lInboundData, 3),
+                        (integer)llList2String(l_lInboundData, 4),
+                        (integer)llList2String(l_lInboundData, 5),
+                        (integer)llList2String(l_lInboundData, 6)
+                    ]
+                );
+
+                // Acknowledges success
+                llHTTPResponse(id, 200, "Payment options applied");
                 return;
 
             } else if (l_sAction == "pay")
